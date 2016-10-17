@@ -1,6 +1,8 @@
 #!/bin/python
 import sys
-from jf_mgr import *
+import jf_mgr as jfm
+import util as ut
+from cm_err import *
 """Search, process mir target sites on circles."""
 
 ARG_GENERATE = '-g'
@@ -20,24 +22,32 @@ def process_cmdargs(args):
         return None
     return args[1]
 
-def run_job(config):
-    pass
+def run_job(jf_path):
+    """Run job, given job config file."""
+    # load job file
+    config = None
+    try:
+        config = jfm.load_jf(jf_path)
+    except CMErr as cme:
+        ut.log.error(str(cme))
+    except:
+        ut.log.error(str(CMErr()))
 
 def branch_modes(mode):
     """Branches into the correct program mode."""
     if mode == ARG_GENERATE:
-        return generate_jf_template()
+        return jfm.generate_jf_template()
     elif mode == ARG_HELP:
         print_usage(sys.stdout)
         return 0
     else:
-        return run_job(mode)
+        return run_job(mode) # mode = path to config file, in this case
 
 if __name__ == '__main__':
     # process args
     mode = process_cmdargs(sys.argv)
     if mode is None:
-        sys.stderr.write('e: bad usage\n')
+        ut.log.error('Bad usage.')
         print_usage()
     else:
         sys.exit(branch_modes(mode))

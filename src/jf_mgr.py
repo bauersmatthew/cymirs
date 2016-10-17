@@ -1,10 +1,13 @@
 import sys
 import os
 from cm_err import *
+import util as ut
+import logging
 """Manage job file IO."""
 
 job_file_tags = dict(
     JFT_CIRC_FILE='CIRC_INFO_FILE',
+    JFT_REGION_FILE='REGION_INFO_FILE',
     JFT_MIR_FILE='MIR_INFO_FILE',
     JFT_GENOME_FILE='GENOME_FILE',
     JFT_OUT_DIR='OUTPUT_DIR',
@@ -21,119 +24,56 @@ job_file_tags = dict(
     JFT_TEXT_ADDR='TEXT_NUM',
     JFT_TEXT_WHEN='TEXT_ON')
 
+# tag categories
+jft_blank_ok = ut.get_tag_batch( # can be blank
+    job_file_tags,
+    ('JFT_CIRC_FILE', 'JFT_REGION_FILE',
+        'JFT_FC_DOWNREG',
+        'JFT_EMAIL_ADDR', 'JFT_EMAIL_WHEN', 'JFT_TEXT_ADDR', 'JFT_TEXT_WHEN'))
+jft_xor_groups = tuple(ut.get_tag_batch(job_file_tags, grp) for grp in ( # one or other given but not both
+    ('JFT_CIRC_FILE', 'JFT_REGION_FILE')))
+jft_files = ut.get_tag_batch( # is a file
+    job_file_tags,
+    ('JFT_CIRC_FILE', 'JFT_REGION_FILE', 'JFT_MIR_FILE', 'JFT_GENOME_FILE'))
+jft_dirs = ut.get_tag_batch(job_file_tags, ('JFT_OUT_DIR')) # is a directory
+jft_exprs = ut.get_tag_batch(job_file_tags, ('JFT_SIG_PVAL', 'JFT_FC_UPREG', 'JFT_FC_DOWNREG')) # float expressions
+jft_nums = ut.get_tag_batch(job_file_tags, ('JFT_TOP_N')) # flat ints only
+jft_mch = ut.get_tag_bath( # answers are restricted (e.g. yes/no, high/medium/low)
+    job_file_tags,
+    ('JFT_KEEP_TMP', 'JFT_STT_OUT_FMT', 'JFT_KEEP_ALL_OUTPUT', 'JFT_VERBOSITY',
+        'JFT_EMAIL_WHEN', 'JFT_TEXT_WHEN'))
+
 def generate_template(dest = sys.stdout):
     """Write a template file to the given file."""
-    contents = (
-        "# this is a comment line!\n'
-        '# all paths are relative to THIS FILE.\n'
-        '# all fields must be filled in unless stated otherwise.\n'
-        '# all multiple-choice fields are case-insensitive.\n\n'
-        
-        '#     ----    FILES    ----\n\n'
-        
-        '# the file containing info about the circRNAs.\n'
-        '# format:\n'
-        '#     circ_id\tgene_id\tchrom\tstart\tend\tstrand\treg\tp-va\n'
-        '# notes:\n'
-        '#     start and end coords are 0-based, [start, end) like BED.\n'
-        '#     if reg is undefined, write na, NA, inf, or INF.\n'
-        '{jft[JFT_CIRC_FILE]}=\n\n'
-        
-        '# the file containing info about the miRNAs.\n'
-        '# the format of this file is described by targetscan.\n'
-        '{jft[JFT_MIR_FILE]}=\n\n'
-        
-        '# the genome file.\n'
-        '# this file should be formatted as a FASTA (NOT FASTQ!).\n'
-        '# usually, it can be obtained from UCSC.\n'
-        '{jft[JFT_GENOME_FILE]}=\n\n'
-        
-        '# the output directory.\n'
-        '# the directory to write all output files to.\n'
-        '{jft[JFT_OUT_DIR]}=./cymirs_out\n\n'
-        
-        '#     ----    OTHER SETTINGS    ----\n\n'
-        
-        '# the largest p-value to accept as significant.\n'
-        '{jft[JFT_SIG_PVAL]}=.05\n\n'
-        
-        '# the minimum fold change required to be upregulated.\n'
-        '# this value must be greater than FOLDCHNG_DOWN.\n'
-        '# expressions (e.g. 1/2) are accepted.\n'
-        '{jft[JFT_FC_UPREG]}=1.5\n\n'
-        
-        '# the maximum fold change required to be downregulated.\n'
-        '# this value must be less than FOLDCHNG_UP.\n'
-        '# expressions (e.g. 1/2) are accepted.\n'
-        '# if this value is left blank, 1/{jft[JFT_FC_UPREG]} is used.\n'
-        '{jft[JFT_FC_DOWNREG]}=\n\n'
-        
-        '# whether or not to keep temp files.\n'
-        '# Yes ==> keep | No ==> delete\n'
-        '{jft[JFT_KEEP_TMP]}=No\n\n'
-        
-        '# what formats to output stats in.\n'
-        '# this should be a comma-separated (no spaces) list of formats.\n'
-        '# avaliable formats: tsv | csv | xlsx\n'
-        '{jft[JFT_STT_OUT_FMT]}=xlsx\n\n'
-        
-        '# the value of N in the given top-N miRNA overview per circle.\n'
-        '{jft[JFT_TOP_N]}=5\n\n'
-        
-        '# whether or not all miRNA info should be kept in the final output, or if only the top-N should be displayed.\n'
-        '# note: information about all miRNAs will still be available.\n'
-        '{jft[JFT_KEEP_ALL_OUTPUT]}=No\n\n'
-        
-        '# how verbose the stderr output should be.\n'
-        '# options: silent (NOT RECOMMENDED) | normal | verbose\n'
-        '{jft[JFT_VERBOSITY]}=verbose\n\n'
-        
-        '#     ----    STATUS UPDATES    ----\n\n'
-        
-        '# where to send email messages to\n'
-        '# if left blank, emails will not be sent.\n'
-        '{jft[JFT_EMAIL_ADDR]}=\n\n'
-        
-        '# when to send email messages\n'
-        '# this should be a comma-separated (no spaces) list of events.\n'
-        '# available events:\n'
-        '#     step-minor | step-major\n'
-        '#     warning | error\n'
-        '#     after | finish\n'
-        '#     rundown\n'
-        '# notes:\n'
-        "#     'after' takes the number of minutes a parameter: after(60)\n"
-        "#     'rundown' gives a rundown of the result on completion.\n"
-        '{jft[JFT_EMAIL_WHEN]}=error,finish,rundown\n\n'
-        
-        '# where to send text messages to\n'
-        '# if left blank, texts will not be sent.\n'
-        '{jft[JFT_TEXT_ADDR]}=\n\n'
-        
-        '# when to send text messages\n'
-        '# this option follows the same format and parameters as {jft[JFT_EMAIL_WHEN]}.\n'
-        '{jft[JFT_TEXT_WHEN]}=error,finish,rundown\n\n'.format(jft=job_file_tags)
-        
+    contents = None
+    with open('jf_template.txt') as fh:
+        contents = fh.read().format(jft=job_file_tags)
     dest.write(contents)
-    
-def eval_expr(expr):
-    """Evaluate a simple (pythonic) mathematical expression.
-    
-    Does some basic input sanitization and then calls eval."""
-    expr = expr.strip()
-    
-    # sanitize badly; only allow eE.^()-+*/0123456789
-    # i dont figure anyone will try to hack this anyway, and all they could do is
-    #     call a function called like eee() or something
-    for ch in expr:
-        if ch not in 'eE.^()-+*/0123456789':
-            return None
-            
-    # evaluate, return
-    try:
-        return eval(expr)
-    except:
-        return None
+
+def _check_mch_tags(parts):
+    """(Internal) Check values for multiple choice tags."""
+    tag = parts[0]
+
+    # just go through and check each separately/specifically
+    if tag in ut.get_tag_batch(job_file_tags, ('JFT_KEEP_TMP', 'JFT_KEEP_ALL_OUTPUT'))
+        return (parts[1].lower() in ['yes', 'no'])
+    elif tag == job_file_tags['JFT_STT_OUT_FMT']:
+        vals = parts[1].split(',')
+        for val in vals:
+            if val.lower() not in ['tsv', 'csv', 'xlsx']:
+                return False
+        return True
+    elif tag == job_file_tags['JFT_VERBOSITY']:
+        return (parts[1].lower() in ['slient', 'normal', 'verbose'])
+    elif tag in ut.get_tag_batch(job_file_tags, ('JFT_EMAIL_WHEN', 'JFT_TEXT_WHEN')):
+        vals = parts[1].split(',')
+        for val in vals:
+            if val.lower() not in ['step-minor', 'step-major', 'warning', 'error', 'after', 'finish', 'rundown']:
+                return False
+        return True
+
+    # should never get here
+    return False
 
 def _jf_verify_value(parts):
     # function to get groups of tags easily
@@ -142,15 +82,19 @@ def _jf_verify_value(parts):
     # handle blank values
     if not parts[1]:
         # ok only if tag allows blanks
-        if parts[0] in gtgs('JFT_FC_DOWNREG', 'JFT_EMAIL_ADDR', 'JFT_TEXT_ADDR'):
+        if parts[0] in jft_blank_ok:
             return True
         return False
         
     # handle files
-    if parts[0] in gtgs('JFT_CIRC_FILE', 'JFT_MIR_FILE', 'JFT_GENOME_FILE'):
+    if parts[0] in jft_files:
+        if not parts[1]:
+            pass
         return os.path.isfile(parts[1])
     # directories
-    if parts[0] in gtgs('JFT_OUT_DIR'):
+    if parts[0] in jft_dirs:
+        if not parts[1]:
+            pass
         # try to create if doesn't exist
         if not os.path.isdir(parts[1]):
             try:
@@ -162,22 +106,36 @@ def _jf_verify_value(parts):
         
     # handle numbers
     # expression-allowing
-    if parts[0] in gtgs('JFT_SIG_PVAL', 'JFT_FC_UPREG', 'JFT_FC_DOWNREG'):
-        parts[1] = eval_expr(parts[1])
+    if parts[0] in jft_exprs:
+        if not parts[1]:
+            pass
+        parts[1] = ut.eval_expr(parts[1])
         if parts[1] is None:
             return False
         return True
     # non-expression allowing
-    if parts[0] in gtgs('JFT_TOP_N'):
+    if parts[0] in jft_nums:
+        if not parts[1]:
+            pass
         try:
             parts[1] = int(parts[1])
         except:
             return False
         return True
         
-    # more specific cases
-    # TODO TODO TODO TODO TODO
+    # multiple/restricted choice
+    if parts[0] in jft_mch:
+        return _check_mch_tags(parts)
+
+    # should never get here
+    return False
     
+def _jf_fill_blank(blank, config):
+    """Fill in ONE blank."""
+    if blank == 'JFT_FC_DOWNREG':
+        config[blank] = 1/config['JFT_FC_UPREG']
+    if blank in ('JFT_REGION_FILE', 'JFT_CIRC_FILE'):
+        config[blank] = ''
 
 def load_jf(path):
     """Load a job file."""
@@ -196,6 +154,8 @@ def load_jf(path):
         
     # set working directory so that future paths work relative to the job file
     os.chdir(os.path.dirname(path))
+
+    config = {} # descibe configuration given by job file
 
     # parse line by line
     for lnum, line in enumerate(lines):
@@ -217,4 +177,41 @@ def load_jf(path):
             raise CMELoad('job file invalid (unrecognized tag) @ line {}'.format(lnum+1), 4)
             
         # verify value (second pass)
-        
+        if not _jf_verify_value(parts):
+            raise CMELoad('job file invalid (invalid value) @ line {}'.format(lnum+1), 5)
+
+        # save tag/value
+        config[parts[0]] = parts[1]
+
+    # check that all required tags are given
+    for jft in job_file_tags:
+        if jft not in config and jft not in jft_blank_ok:
+            raise CMELoad('job file invalid (required fields missing)', 6)
+
+    # translate logger level to be python compatible
+    config['JFT_VERBOSITY'] = \
+        {'silent':logging.CRITICAL, 'normal':logging.INFO, 'verbose':logging.DEBUG}[config['JFT_VERBOSITY']]
+    # set logger level
+    ut.log.setLevel(config['JFT_VERBOSITY'])
+
+    # handle blank-ok tags
+    for jft in jft_blank_ok:
+        if jft not in config:
+            ut.log.warning("Tag '{}' not found; using default.".format(jft))
+            _jf_fill_blank(jft, config)
+        elif not config[jft]:
+            _jf_fill_blank(jft, config)
+
+    # handle xor groups
+    # go through each group, making sure only one tag in the group is given
+    for xgrp in jft_xor_groups:
+        found_one = False
+        for tag in xgrp:
+            if config[tag]:
+                if found_one:
+                    raise CMELoad('job file invalid (conficting tags given)', 7)
+                else:
+                    found_one = True
+
+    # finished; return
+    return config

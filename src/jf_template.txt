@@ -1,0 +1,96 @@
+# this is a comment line!
+# all paths are relative to THIS FILE.
+# all fields must be filled in unless stated otherwise.
+# all multiple-choice fields are case-insensitive.
+
+#     ----    FILES    ----
+
+# the file containing info about the regions to scan.
+# format: BED (include fields 1-6 inclusive)
+# CANNOT be provided if {jft[JFT_CIRC_FILE]} is also given.
+{jft[JFT_REGION_FILE]}=
+
+# the file containing info about the circRNAs.
+# format: (tab-separated)
+#     circ_id    gene_id    chrom    start    end    strand    reg    p-val
+# notes:
+#     start and end coords are 0-based, [start, end) like BED.
+#     if reg is undefined, write na, NA, inf, or INF.
+# if provided, circRNA analysis will be performed.
+# CANNOT be provided if {jft[JFT_REGION_FILE]} is also given.
+{jft[JFT_CIRC_FILE]}=
+
+# the file containing info about the miRNAs.
+# the format of this file is described by targetscan.
+{jft[JFT_MIR_FILE]}=
+
+# the genome file.
+# this file should be formatted as a FASTA (NOT FASTQ!).
+# usually, it can be obtained from UCSC.
+{jft[JFT_GENOME_FILE]}=
+
+# the output directory.
+# the directory to write all output files to.
+{jft[JFT_OUT_DIR]}=./cymirs_out
+
+#     ----    OTHER SETTINGS    ----
+
+# the largest p-value to accept as significant.
+{jft[JFT_SIG_PVAL]}=.05
+
+# the minimum fold change required to be upregulated.
+# this value must be greater than FOLDCHNG_DOWN.
+# expressions (e.g. 1/2) are accepted.
+{jft[JFT_FC_UPREG]}=1.5
+
+# the maximum fold change required to be downregulated.
+# this value must be less than FOLDCHNG_UP.
+# expressions (e.g. 1/2) are accepted.
+# if this value is left blank, 1/{jft[JFT_FC_UPREG]} is used.
+{jft[JFT_FC_DOWNREG]}=
+
+# whether or not to keep temp files.
+# Yes ==> keep | No ==> delete
+{jft[JFT_KEEP_TMP]}=No
+
+# what formats to output stats in.
+# this should be a comma-separated (no spaces) list of formats.
+# avaliable formats: tsv | csv | xlsx
+{jft[JFT_STT_OUT_FMT]}=xlsx
+
+# the value of N in the given top-N miRNA overview per circle.
+{jft[JFT_TOP_N]}=5
+
+# whether or not all miRNA info should be kept in the final output, or if only the top-N should be displayed.
+# note: information about all miRNAs will still be available.
+{jft[JFT_KEEP_ALL_OUTPUT]}=No
+
+# how verbose the stderr output should be.
+# options: silent (NOT RECOMMENDED) | normal | verbose
+{jft[JFT_VERBOSITY]}=verbose
+
+#     ----    STATUS UPDATES    ----
+
+# where to send email messages to
+# if left blank, emails will not be sent.
+{jft[JFT_EMAIL_ADDR]}=
+
+# when to send email messages
+# this should be a comma-separated (no spaces) list of events.
+# available events:
+#     step-minor | step-major
+#     warning | error
+#     after | finish
+#     rundown
+# notes:
+#     after takes the number of minutes a parameter: after(60)
+#     rundown gives a rundown of the result on completion.
+{jft[JFT_EMAIL_WHEN]}=error,finish,rundown
+
+# where to send text messages to
+# if left blank, texts will not be sent.
+{jft[JFT_TEXT_ADDR]}=
+
+# when to send text messages
+# this option follows the same format and parameters as {jft[JFT_EMAIL_WHEN]}.
+{jft[JFT_TEXT_WHEN]}=error,finish,rundown

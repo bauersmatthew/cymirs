@@ -9,7 +9,7 @@ class CMErr:
     def __repr__(self):
         return 'CMErr({s.msg}, {s.code}, {s.sector})'.format(self)
     def __str__(self):
-        return 'e: {s.msg} ({s.err})'.format(self)
+        return '{s.msg} ({s.err})'.format(self).capitalize()
     def __int__(self):
         return self.err
         
