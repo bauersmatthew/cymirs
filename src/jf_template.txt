@@ -73,6 +73,7 @@
 
 # where to send email messages to
 # if left blank, emails will not be sent.
+# NOTE: EMAIL NOT YET SUPPORTED! (HOPEFULLY COMING SOON)
 {jft[JFT_EMAIL_ADDR]}=
 
 # when to send email messages
