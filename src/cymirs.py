@@ -22,26 +22,20 @@ def process_cmdargs(args):
         return None
     return args[1]
 
-def run_job(jf_path):
-    """Run job, given job config file."""
-    # load job file
-    config = None
+def branch_modes(mode):
+    """Branches into the correct program mode."""
     try:
-        config = jfm.load_jf(jf_path)
+        if mode == ARG_GENERATE:
+            return jfm.generate_jf_template()
+        elif mode == ARG_HELP:
+            print_usage(sys.stdout)
+            return 0
+        else:
+            return run_job(mode) # mode = path to config file, in this case
     except CMErr as cme:
         ut.log.error(str(cme))
     except:
-        ut.log.error(str(CMErr()))
-
-def branch_modes(mode):
-    """Branches into the correct program mode."""
-    if mode == ARG_GENERATE:
-        return jfm.generate_jf_template()
-    elif mode == ARG_HELP:
-        print_usage(sys.stdout)
-        return 0
-    else:
-        return run_job(mode) # mode = path to config file, in this case
+        ut.log.error('Unhandled exception! (ooops)')
 
 if __name__ == '__main__':
     # process args

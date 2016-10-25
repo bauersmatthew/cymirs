@@ -71,12 +71,11 @@
 
 #     ----    STATUS UPDATES    ----
 
-# where to send email messages to
-# if left blank, emails will not be sent.
-# NOTE: EMAIL NOT YET SUPPORTED! (HOPEFULLY COMING SOON)
-{jft[JFT_EMAIL_ADDR]}=
+# where to send text messages to
+# if left blank, texts will not be sent.
+{jft[JFT_TEXT_ADDR]}=
 
-# when to send email messages
+# when to send text messages
 # this should be a comma-separated (no spaces) list of events.
 # available events:
 #     step-minor | step-major
@@ -86,12 +85,4 @@
 # notes:
 #     after takes the number of minutes a parameter: after(60)
 #     rundown gives a rundown of the result on completion.
-{jft[JFT_EMAIL_WHEN]}=error,finish,rundown
-
-# where to send text messages to
-# if left blank, texts will not be sent.
-{jft[JFT_TEXT_ADDR]}=
-
-# when to send text messages
-# this option follows the same format and parameters as {jft[JFT_EMAIL_WHEN]}.
 {jft[JFT_TEXT_WHEN]}=error,finish,rundown

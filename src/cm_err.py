@@ -17,3 +17,8 @@ class CMELoad:
     """For the JF loading routine."""
     def __init__(self, msg, code):
         super(msg, code, 0)
+
+class CMERun:
+    """For the main job-file running routine."""
+    def __init__(self, msg, code):
+        super(msg, code, 100)

@@ -32,6 +32,30 @@ def eval_expr(expr):
         return None
 
 
+class PathGenerator:
+	"""To assist with generating appropriate paths."""
+	def __init__(self):
+		self.prefix = ''
+		self.keeptmp = False
+
+	def set_outdir(self, path):
+		"""Set output directory."""
+		self.prefix = path + '/'
+
+	def set_keeptmp(self, keep):
+		"""Set whether or not to keep temp files."""
+		self.keeptmp = keep
+
+	def gen_outf(self, name):
+		"""Generate an output file path."""
+		return self.prefix + name
+
+	def gen_tmpf(self, name):
+		"""Generate a temp file path."""
+		if self.keeptmp:
+			return self.prefix + 'tmp/tmp-' + name
+		else:
+			return 
 
 # --------        LOGGING        --------
 
@@ -54,11 +78,6 @@ log_filter = TextEmailFilter()
 log_filter.defconfig()
 log.addFilter(log_filter)
 
-def send_email(msg):
-	"""Send an email with default subject and given message."""
-	# TODO... maybe...
-	pass
-
 requests = None
 def send_text(dest, msg):
 	"""Send a text with given contents to given number.
@@ -79,10 +98,37 @@ class TextEmailFilter(logging.Filter):
 		"""Set defaults for text/email values.
 
 		MUST BE CALLED BEFORE ANYTHING ELSE."""
-		self.addr_email = ''
 		self.addr_txt = ''
-		self.when_email = []
 		self.when_txt = []
+
+	def set_addr_txt(self, jf_val):
+		"""Set txt address according to job file value."""
+		self.addr_txt = jf_val
+
+	def _parse_jfv_when(self, jf_val):
+		"""Parse on when values for text/email.
+
+		Intented for internal use only."""
+		if not jf_val:
+			return []
+
+		parsed = []
+
+		events = jf_val.split(',')
+		for ev in events:
+			parsed.append(
+				{
+				"step-minor":LL_STEP_MINOR,
+				"step-major":LL_STEP_MAJOR,
+				"warning":logging.WARNING,
+				"error":logging.ERROR
+				# others (after/finish/rundown) not handled here
+				}[ev])
+		return parsed
+
+	def set_when_txt(self, jf_val):
+		"""Set txt triggers according to job file value."""
+		self.when_txt = self._parse_jfv_when(jf_val)
 
 	def filter(self, record):
 		# send email, text if appropriate
@@ -93,7 +139,7 @@ class TextEmailFilter(logging.Filter):
 				log.warning('Failed to send email; will not try again.')
 				self.addr_email = ''
 
-		if self.addr_txt and record.leveno in self.when_text:
+		if self.addr_txt and record.leveno in self.when_txt:
 			try:
 				send_txt(self.addr_txt, record.message)
 			except:

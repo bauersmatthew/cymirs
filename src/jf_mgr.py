@@ -19,8 +19,6 @@ job_file_tags = dict(
     JFT_TOP_N='TOP_N_VAL',
     JFT_KEEP_ALL_OUTPUT='KEEP_ALL',
     JFT_VERBOSITY='VERBOSITY',
-    JFT_EMAIL_ADDR='EMAIL',
-    JFT_EMAIL_WHEN='EMAIL_ON',
     JFT_TEXT_ADDR='TEXT_NUM',
     JFT_TEXT_WHEN='TEXT_ON')
 
@@ -29,7 +27,7 @@ jft_blank_ok = ut.get_tag_batch( # can be blank
     job_file_tags,
     ('JFT_CIRC_FILE', 'JFT_REGION_FILE',
         'JFT_FC_DOWNREG',
-        'JFT_EMAIL_ADDR', 'JFT_EMAIL_WHEN', 'JFT_TEXT_ADDR', 'JFT_TEXT_WHEN'))
+        'JFT_TEXT_ADDR', 'JFT_TEXT_WHEN'))
 jft_xor_groups = tuple(ut.get_tag_batch(job_file_tags, grp) for grp in ( # one or other given but not both
     ('JFT_CIRC_FILE', 'JFT_REGION_FILE')))
 jft_files = ut.get_tag_batch( # is a file
@@ -41,7 +39,7 @@ jft_nums = ut.get_tag_batch(job_file_tags, ('JFT_TOP_N')) # flat ints only
 jft_mch = ut.get_tag_bath( # answers are restricted (e.g. yes/no, high/medium/low)
     job_file_tags,
     ('JFT_KEEP_TMP', 'JFT_STT_OUT_FMT', 'JFT_KEEP_ALL_OUTPUT', 'JFT_VERBOSITY',
-        'JFT_EMAIL_WHEN', 'JFT_TEXT_WHEN'))
+        'JFT_TEXT_WHEN'))
 
 def generate_template(dest = sys.stdout):
     """Write a template file to the given file."""
@@ -65,7 +63,7 @@ def _check_mch_tags(parts):
         return True
     elif tag == job_file_tags['JFT_VERBOSITY']:
         return (parts[1].lower() in ['slient', 'normal', 'verbose'])
-    elif tag in ut.get_tag_batch(job_file_tags, ('JFT_EMAIL_WHEN', 'JFT_TEXT_WHEN')):
+    elif tag in ut.get_tag_batch(job_file_tags, ('JFT_TEXT_WHEN',)):
         vals = parts[1].split(',')
         for val in vals:
             if val.lower() not in ['step-minor', 'step-major', 'warning', 'error', 'after', 'finish', 'rundown']:
